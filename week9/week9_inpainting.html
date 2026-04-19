@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API 이미지 생성 실습</title>
+</head>
+<body>
+    
+    <input type="file" id="fileInput" accept="image/*">
+    <input type="text" id="promptInput" placeholder="예: 배경을 해변으로 바꿔줘" style="width: 300px;">
+    <button id="generateBtn">이미지 수정하기</button>
+
+    <p id="statusText"></p>
+    <img id="resultImg" style="max-width: 500px; display: none;">
+
+    <script>
+
+        async function fileToBase64(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+            });
+        }
+
+        async function generateGemini() {
+            const API_KEY = "발급받은 API KEY를 입력하세요"; 
+            const model = "gemini-3.1-flash-image-preview";
+            const URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+            const resultImg = document.getElementById("resultImg");
+
+            const file = document.getElementById("fileInput").files[0];
+            const promptText = document.getElementById("promptInput").value;
+            const base64Data = await fileToBase64(file);
+            
+            const response = await fetch(URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: promptText },
+                            { inline_data: { mime_type: file.type, data: base64Data } }
+                        ]
+                    }],
+                    generation_config: { response_modalities: ["IMAGE"] }
+                })
+            });
+
+            const data = await response.json();
+            const imgData = data.candidates[0].content.parts[0].inlineData; 
+
+            resultImg.src = `data:${imgData.mimeType};base64,${imgData.data}`;
+            resultImg.style.display = "block";
+        }
+
+        document.getElementById("generateBtn").addEventListener("click", generateGemini);
+</script>
+</body>
+</html>

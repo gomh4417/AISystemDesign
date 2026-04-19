@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API 텍스트 생성 실습</title>
+</head>
+<body>
+    
+    <button id="generateBtn">답변 생성하기</button>
+    <input type="file" id="fileInput" accept=".jpg, .jpeg, .png">
+
+    <p id="resultText"></p>
+
+    <script>
+        const API_KEY = "발급받은 API KEY를 입력하세요"; 
+        const URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+        const model = "gemini-2.5-flash";
+
+        async function generateGemini() {
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+
+            try {
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = error => reject(error);
+                });
+
+                const response = await fetch(URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        system_instruction: {
+                            parts: [{ text: "너는 친절한 여행 가이드야. 여행지 정보를 제공할 때, 어디쪽 문서를 참조했는지 명시해야 해." }]
+                        },
+                        contents: [
+                            {
+                                parts: [
+                                    { text: "한국인들이 가기 좋은 여행 버킷리스트 3곳을 추천해 줘." },
+                                    { 
+                                        inline_data: { 
+                                            mime_type: file.type,
+                                            data: base64Data 
+                                        } 
+                                    }
+                                ] 
+                            }
+                        ]
+                    })
+                });
+                
+                const data = await response.json();
+                const resultText = data.candidates[0].content.parts[0].text;
+                
+                
+                console.log(resultText);
+                document.getElementById("resultText").innerText = resultText;
+
+            } catch (error) {
+                console.error("오류:", error);
+            }
+        }
+
+    document.getElementById("generateBtn").addEventListener("click", generateGemini);
+</script>
+</body>
+</html>

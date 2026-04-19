@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API 텍스트 생성 실습</title>
+</head>
+<body>
+    
+    <button id="generateBtn">답변 생성하기</button>
+
+    <p id="resultText"></p>
+
+    <script>
+        // Gemini API 호출: 버킷리스트 생성 예시
+        const API_KEY = "발급받은 API KEY를 입력하세요"; 
+        const model = "gemini-2.5-flash";
+        const URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+        const json = {
+                        "type": "object",
+                        "properties": {
+                            "destination": {
+                            "type": "string"
+                            },
+                            "specialty": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                            },
+                            "activity": {
+                            "type": "string"
+                            }
+                        },
+                        "propertyOrdering": [
+                            "destination",
+                            "specialty",
+                            "activity"
+                        ],
+                        "required": [
+                            "destination",
+                            "specialty",
+                            "activity"
+                        ]
+                     };
+
+        async function generateGemini() {
+            try {
+                const response = await fetch(URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        system_instruction: {
+                            parts: [{ text: "너는 친절한 여행 가이드야. 사용자의 질문에 정확하고 트렌디하게 응답해야 해." }]
+                        },
+                        contents: [
+                            {
+                                parts: [{ text: "한국인들이 가기 좋은 해외 여행 버킷리스트 3곳을 추천해 줘." }] 
+                            }
+                        ],
+                        generation_config: {
+                            response_mime_type: "application/json", 
+                            response_schema: {
+                                type: "ARRAY",
+                                description: "여행 버킷리스트 목록",
+                                items: json,
+                            }
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                const resultList = data.candidates[0].content.parts[0].text;
+                const parsedData = JSON.parse(resultList);
+                
+                console.log(parsedData);        
+                document.getElementById("resultText").innerText = JSON.stringify(parsedData, null, 2);
+                } catch (error) {
+                    console.error("오류:", error);
+                }
+            }
+                document.getElementById("generateBtn").addEventListener("click", generateGemini);
+                
+    </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API 텍스트 생성 실습</title>
+</head>
+<body>
+    
+    
+    <input type="file" id="fileInput" accept=".pdf">
+
+    <p id="resultText"></p>
+
+    <script>
+        const API_KEY = "발급받은 API KEY를 입력하세요"; 
+        const URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+        const model = "gemini-2.5-flash";
+
+        document.getElementById("fileInput").addEventListener("change", async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                try {
+                    // Base64로 인코딩
+                    const base64Data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => resolve(reader.result.split(',')[1]); // 'data:application/pdf;base64,' 뒷부분만 추출
+                        reader.onerror = error => reject(error);
+                    });
+
+                    
+                    const response = await fetch(URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            system_instruction: {
+                                parts: [{ text: "너는 전문 논문 리뷰어야. 제공된 PDF 문서를 읽고 친절하게 답변해줘." }]
+                            },
+                            contents: [
+                                {
+                                    parts: [
+                                        { text: "이 PDF 파일의 내용을 평가해줘." },
+                                        
+                                        // 변환된 Base64 데이터를 inline_data로 프롬프트에 포함
+                                        { 
+                                            inline_data: { 
+                                                mime_type: "application/pdf", 
+                                                data: base64Data 
+                                            } 
+                                        }
+                                    ] 
+                                }
+                            ]
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const resultText = data.candidates[0].content.parts[0].text;
+                    
+                    console.log(resultText);
+                    document.getElementById("resultText").innerText = resultText;
+
+                } catch (error) {
+                    console.error("오류:", error);
+                }
+        });
+</script>
+</body>
+</html>
