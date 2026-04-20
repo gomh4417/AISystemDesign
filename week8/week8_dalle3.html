@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OpenAI API 이미지 생성 실습</title>
+  </head>
+  <body>
+    <div>
+      <button id="recipeBtn">레시피 생성</button>
+      <p id="recipe"></p>
+    </div>
+
+    <div>
+      <button id="imgBtn">이미지 생성</button>
+      <img id="resultImg" src="">
+    </div>
+
+    <script>
+      const API_KEY = "발급받은 API KEY를 입력하세요";
+
+      const info = `
+        버터떡은 찹쌀가루와 타피오카 전분을 베이스로 버터를 듬뿍 넣어 오븐에 구워내기 때문에, 프랑스 디저트인 까눌레처럼 겉은 바삭하고 속은 쫄깃한 이른바 '겉바속쫀'의 식감을 완벽하게 구현하며 씹을수록 입안 가득 퍼지는 고소하고 진한 버터의 풍미와 달콤함이 특징입니다. 1개의 밤알처럼 생긴 형태입니다.
+      `  
+      const imageInfo = `
+        작고 동그란 돔(pear-like dome) 모양의 구운 버터떡. 표면은 짙고 윤기 나는 캐러멜 갈색으로 코팅되어 있으며, 물결치는 듯한 세로 홈 무늬가 특징적입니다. 여러 개의 버터떡이 흰색 선물 상자 안에 각각 유산지 컵에 담겨 가지런히 정렬되어 있습니다. 상자는 열려 있으며, 부드럽고 자연스러운 조명 아래 나무 테이블 위에 놓여 있습니다. 식욕을 자극하는 근접 음식 사진 스타일
+      `;
+
+      // OpenAI API 호출: 디저트 레시피 생성 예시
+      async function generateRecipe() {
+        try {
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-5.4-mini",
+              messages: [
+                { role: "system", content: "너는 트렌디한 디저트 전문가야. 재료 준비부터 조리까지 모든 과정을 알려줘. 간단하게 설명해줘." },
+                { role: "user", content: `겉바속쫀한 버터떡 레시피를 알려줘. 버터떡에 대한 정보는 다음과 같아: ${info}` },
+              ],
+            }),
+          });
+
+          const getData = await response.json();
+          const recipe = getData.choices[0].message.content;
+          
+          console.log(recipe);
+          document.getElementById("recipe").innerText = recipe;
+          
+        } catch (error) {
+          console.error("오류:", error);
+        }
+      }
+
+      // DALL-E API 호출: 디저트 이미지 생성 예시
+      async function generateImage() {
+        try {
+          const dalleResponse = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "dall-e-3",
+              prompt: `상하이 버터떡 디저트 이미지, 고화질, 상단 뷰, 버터떡 설명을 참고하여 이미지를 생성: ${imageInfo}`,
+              n: 1,
+              size: "1024x1024",
+            }),
+          });
+
+          const getData = await dalleResponse.json();
+          const imageUrl = getData.data[0].url;
+          const revisedPrompt = getData.data[0].revised_prompt;
+
+          document.getElementById("resultImg").src = imageUrl;
+          console.log("AI가 수정한 프롬프트:", revisedPrompt);
+          
+          console.log(imageUrl);
+          
+        } catch (error) {
+          console.error("오류:", error);
+        }
+      };
+
+      document.getElementById("recipeBtn").addEventListener("click", generateRecipe);
+      document.getElementById("imgBtn").addEventListener("click", generateImage);
+    </script>
+  </body>
+</html>
